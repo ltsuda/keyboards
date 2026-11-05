@@ -1,0 +1,12 @@
+# Build outputs
+*.uf2
+*.hex
+*.bin
+
+# QMK intermediates
+.build/
+
+# Editor / OS noise
+.DS_Store
+Thumbs.db
+*~
