@@ -1,8 +1,7 @@
-# ltsuda — QMK firmware for Keebio Iris CE Rev.1
+# ltsuda firmware (Keebio Iris CE Rev.1)
 
-External [QMK userspace](https://docs.qmk.fm/newbs_external_userspace) repository containing
-the `ltsuda` keymap for the **Keebio Iris CE Rev.1**. This repo is designed to be used as
-QMK's `user.overlay_dir`; you do **not** need to keep any of QMK's own tree in git here.
+External QMK userspace repository containing the `ltsuda` keymap for the Keebio Iris CE
+Rev.1. It works with QMK's `user.overlay_dir`; no QMK source lives in this repo.
 
 ## What's in it
 
@@ -11,53 +10,48 @@ keyboards/keebio/iris_ce/rev1/keymaps/ltsuda/
     keymap.c     # the keymap (see below)
     rules.mk     # TRI_LAYER_ENABLE = yes
     config.h     # factory default RGB effect (ALPHAS_MODS)
-qmk.json         # userspace build descriptor (qmk userspace-compile/targets)
+qmk.json         # userspace build descriptor (build/flash targets)
 ```
 
-The keyboard definition itself is stock upstream QMK — nothing from it is vendored here.
+The keyboard definition itself is stock upstream QMK; nothing from it is copied here.
 
-## Keyboard features (ltsuda)
+## What the keymap does
 
-Dual-OS keymap with runtime switching:
+Boots into Windows. The top-right key toggles to macOS and back. The choice is
+per-session and does not survive a reboot.
 
-- **Boot → Windows.** Press the **top-right key** to toggle to **macOS** (and back).
-  The toggle lives only on the two base layers; symbols/nav layers are OS-specific.
-- **RGB colour indicator** — pixels show the active OS stack:
-  - **blue** — Windows
-  - **red** — macOS
-  - **magenta** — Settings layer
-  - Effect forced to `ALPHAS_MODS` (static two-tone, no motion); change freely in Settings —
-    it reverts to ALPHAS_MODS at the next boot.
-- **Layers**: Win base → Win symbols → Win nav · Mac base → Mac symbols → Mac nav ·
-  Settings (hold **both** FN keys; release either to exit).
-- Symbols/nav keys carry the matching OS modifier order; OS toggling is session-only.
-- **OS toggle** = default-layer flip between macOS/Windows base layers (Esc unaffected).
-  Backspace lives above {Space}; top-right key on base layers is the OS toggle only.
+- Symbols and Nav layers exist in both OS variants, each with that OS's modifier order.
+- Hold both FN keys to enter Settings; release either key to exit.
+- RGB indicator shows the active OS stack: blue for Windows, red for macOS, magenta for
+  Settings. The effect is fixed to ALPHAS_MODS (static colours); change it in Settings if
+  you want, it reverts at the next boot.
+- Backspace lives above Space. The top-right key on the base layers is the OS toggle
+  only; Esc stays Esc on both.
 
 ## Prerequisites
 
-- QMK CLI installed and settings configured (`qmk doctor` must pass).
-- QMK Firmware cloned once, e.g. via `qmk setup`.
-- This repo cloned anywhere, e.g. `~/developer/keyboards`.
+- QMK CLI installed; `qmk doctor` passes.
+- QMK Firmware cloned once (`qmk setup`).
+- This repo cloned somewhere, for example `~/developer/keyboards`.
 
 ## Setup (once per machine)
 
 ```bash
 cd ~/developer/keyboards
-git pull                       # or clone the repo first
+# git pull if you already have it, clone first otherwise
 qmk config user.overlay_dir="$(realpath ~/developer/keyboards)"
 ```
 
 ## Build
 
-Build everything listed in `qmk.json` (output lands in repo root):
+Every target listed in `qmk.json`:
 
 ```bash
 cd ~/developer/keyboards
 qmk userspace-compile
 ```
 
-Or build just the one target (equivalent, output also copied to repo root):
+Or just this one target (same output; the UF2 is also copied to the repo root):
 
 ```bash
 qmk compile -kb keebio/iris_ce/rev1 -km ltsuda
@@ -65,26 +59,30 @@ qmk compile -kb keebio/iris_ce/rev1 -km ltsuda
 
 ## Flash
 
-Keyboard must be connected as a USB HID device.
+The Iris CE is RP2040-based, so the bootloader is UF2. Each half is flashed separately,
+with the same file. The interconnect cable does not matter for flashing.
+
+1. Put the half into bootloader mode. Double-tap the Reset button (between the halves),
+   or hold it for at least one second and release.
+2. Wait for the OS to detect the board. It appears as a USB mass-storage drive named
+   `RPI-RP2`.
+3. Copy `keebio_iris_ce_rev1_ltsuda.uf2` to the `RPI-RP2` drive. The drive ejects itself
+   and the half reboots into the new firmware.
+4. Repeat with the other half.
+
+Both halves use the same .uf2. Flash both when anything in the shared protocol may have
+changed; for keymap-only edits you only strictly need to reflash the half the USB cable
+goes into. When in doubt, flash both.
+
+You can also drive it from the command line:
 
 ```bash
 qmk flash -kb keebio/iris_ce/rev1 -km ltsuda
 ```
 
-It will tell you to put the keyboard into bootloader mode — on the Iris CE rev1 this is:
-
-- **double-tap** the physical Reset button (between the halves), or
-- use the **QK_BOOT** key in the Settings layer (hold both FN keys → hit the
-  **top-left** key).
-
-The board appears as FLASH drive; the host (or QMK) copies the `.uf2` onto it
-automatically. Flashing never touches EEPROM.
-
-Manual flash (no QMK CLI needed): download `keebio_iris_ce_rev1_ltsuda.uf2`,
-double-tap-reset, copy the `.uf2` to the drive, unplug/re-plug.
+It waits for you to enter bootloader mode; use one of the two methods above.
 
 ## Notes
 
-- The keymap is **not** VIA-compatible by design (7 layers + custom keycodes).
-- Build iterations: edit `keymap.c` → `qmk userspace-compile` → flash.
-- `.gitignore` excludes `*.uf2` and other build artifacts — don't commit them.
+- Not VIA-compatible by design (7 layers, custom keycodes).
+- Iterating: edit `keymap.c`, rebuild, reflash.
